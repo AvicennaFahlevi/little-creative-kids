@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fcf8f1">
+  <title>Little Creative Kids</title>
+  <?!= include_('Styles'); ?>
+</head>
+<body>
+  <div class="app">
+    <header><a class="brand" href="#" aria-label="Beranda"><span class="brand-icon">✿</span><span>little creative kids<small>RUANG KECIL, IMAJINASI BESAR</small></span></a><nav><button id="home-button" hidden>⌂ Beranda</button><button id="audio-button" aria-label="Matikan suara">♫ Suara</button><button id="parent-button" aria-label="Area orang tua">⚙ Orang tua</button></nav></header>
+    <main id="main" tabindex="-1"></main>
+    <footer>Dibuat untuk rasa ingin tahu yang besar <span>✦</span> Bermain, mencoba, bertumbuh.</footer>
+  </div>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <dialog id="dialog"><form method="dialog"><div id="dialog-content"></div><div class="dialog-actions"><button value="cancel">Kembali</button><button id="dialog-ok" value="ok" class="primary">Ya, lanjutkan</button></div></form></dialog>
+  <?!= include_('Utilities'); ?>
+  <?!= include_('References'); ?>
+  <?!= include_('Audio'); ?>
+  <?!= include_('Drawing'); ?>
+  <?!= include_('Coloring'); ?>
+  <?!= include_('Alphabet'); ?>
+  <?!= include_('Numbers'); ?>
+  <?!= include_('App'); ?>
+</body>
+</html>

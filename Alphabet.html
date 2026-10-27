@@ -1,0 +1,46 @@
+<script>
+LCK.words=['Apel','Bola','Cicak','Dadu','Elang','Foto','Gajah','Hujan','Ikan','Jeruk','Kucing','Lampu','Mobil','Nanas','Obat','Pisang','Quran','Rumah','Sapi','Topi','Ular','Vas','Wortel','Xilofon','Yoyo','Zebra'];
+LCK.wordIcons=['🍎','⚽','🦎','🎲','🦅','🖼','🐘','🌧','🐟','🍊','🐱','💡','🚗','🍍','💊','🍌','📖','🏠','🐄','🎩','🐍','🏺','🥕','🎶','🪀','🦓'];
+LCK.renderAlphabet=()=>LCK.renderLearning('abc');
+LCK.renderLearning=kind=>{
+ const chars=kind==='abc'?'ABCDEFGHIJKLMNOPQRSTUVWXYZ':'0123456789',b=LCK.button;let index=LCK.state[kind+'Index']||0,mode='recognize',demoFrame=0,demonstrating=false;
+ const stopDemo=()=>{cancelAnimationFrame(demoFrame);demoFrame=0;demonstrating=false;};
+ const render=()=>{
+  LCK.activity?.destroy();stopDemo();const char=chars[index],ref=LCK.reference(char),draftKey=kind+':'+char+':'+mode;let paper;
+  const title=kind==='abc'?'Belajar Huruf':'Belajar Angka',word=kind==='abc'?LCK.words[index]:LCK.numberWords[index];
+  const objects=kind==='abc'?LCK.wordIcons[index]:('🍎'.repeat(index)||'🧺');
+  const description=kind==='abc'?`${char} untuk ${word}`:`${word}. ${index===0?'Tidak ada apel.':`Ada ${word.toLowerCase()} apel.`}`;
+  LCK.$('main').innerHTML=LCK.heading(title,'Kenali, ikuti garisnya, lalu coba sendiri.','✦')+`<section class="workspace"><div class="stepper">${b('←','prev')}<strong>${kind==='abc'?'Huruf':'Angka'} ${char}</strong>${b('→','next')}</div><div class="modes">${b('① Kenali','recognize',mode==='recognize'?'selected':'')}${b('② Ikuti garis','trace',mode==='trace'?'selected':'')}${b('③ Coba sendiri','independent',mode==='independent'?'selected':'')}${kind==='num'?b('④ Ayo hitung','count',mode==='count'?'selected':''):''}</div>`+
+   (mode==='recognize'?`<div class="recognize"><div class="big-char">${char}</div><div class="objects">${objects}</div><div class="word">${description}</div>${b('♫ Dengarkan','speak','primary')}</div>`:
+    mode==='count'?`<div class="recognize"><h2>Ada berapa apel?</h2><div class="objects" aria-label="${index} buah apel">${objects}</div><p class="hint">${index===0?'Keranjangnya kosong.':''}</p><div class="toolbar">${LCK.countChoices(index).map(n=>b(String(n),'answer-'+n,'choice')).join('')}</div>${b('♫ Ayo hitung','speak')}</div>`:
+    `<div class="toolbar">${b('♫ Dengarkan','speak')}${b('▷ Contoh gerakan','demo')}${b('↶ Urungkan','undo')}${b('↷ Ulangi','redo')}${b('↺ Coba lagi','clear')}${b('✦ Periksa','check','primary')}</div><div class="paper"><canvas id="paper" aria-label="Kertas latihan ${char}"></canvas></div><div class="progress" role="progressbar" aria-label="Bagian yang sudah diikuti" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="trace-progress" style="width:0%"></div></div><p id="trace-hint" class="hint"></p>`)+`<p class="hint">${mode==='recognize'?'Tekan tombol suara untuk mendengar.':mode==='count'?'Ketuk angka yang cocok dengan jumlah apel.':'Mulai dari titik hijau. Satu garis untuk setiap nomor, lalu angkat jarimu.'}</p></section>`;
+  function update(){if(!paper)return;const strokes=paper.strokes.map(s=>s.p),checks=ref.map((r,i)=>strokes[i]?LCK.geometry.stroke(strokes[i],r):{ok:false});const done=checks.filter(c=>c.ok).length,value=Math.round(done/ref.length*100);LCK.$('trace-progress').style.width=value+'%';document.querySelector('[role="progressbar"]').setAttribute('aria-valuenow',value);LCK.$('trace-hint').textContent=paper.strokes.length<ref.length?`Garis ${paper.strokes.length+1} dari ${ref.length} · Ikuti arah panah.`:'Tekan Periksa. Kamu boleh mengurungkan garis yang ingin dicoba lagi.';document.querySelector('[data-action="undo"]').disabled=!paper.strokes.length;document.querySelector('[data-action="redo"]').disabled=!paper.redo.length;}
+  if(mode==='trace'||mode==='independent'){
+   paper=new LCK.Paper(LCK.$('paper'),{trace:true,strokes:LCK.state.traces[draftKey]||[],size:()=>13,locked:()=>demonstrating,interact:stopDemo,guide:(ctx,q)=>{
+    if(mode!=='trace')return;ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.s,q.s);ctx.lineCap='round';ctx.lineJoin='round';
+    ref.forEach((s,i)=>{ctx.beginPath();s.forEach((p,j)=>j?ctx.lineTo(...p):ctx.moveTo(...p));ctx.strokeStyle='#e6eade';ctx.lineWidth=.055;ctx.setLineDash([]);ctx.stroke();ctx.strokeStyle='#a8bda9';ctx.lineWidth=.006;ctx.setLineDash([.012,.015]);ctx.stroke();ctx.setLineDash([]);
+     const a=s[0],z=LCK.geometry.resample(s,12)[1];ctx.fillStyle='#386957';ctx.beginPath();ctx.arc(a[0],a[1],.022,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.font='bold .026px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),a[0],a[1]);const angle=Math.atan2(z[1]-a[1],z[0]-a[0]);ctx.save();ctx.translate(z[0],z[1]);ctx.rotate(angle);ctx.fillStyle='#6b9274';ctx.beginPath();ctx.moveTo(.018,0);ctx.lineTo(-.01,-.012);ctx.lineTo(-.01,.012);ctx.fill();ctx.restore();});ctx.restore();
+   },change:s=>{LCK.state.traces[draftKey]=s;LCK.persist('traces',LCK.state.traces);update();}});
+   const destroy=paper.destroy.bind(paper);paper.destroy=()=>{stopDemo();destroy();};LCK.activity=paper;update();
+  }else LCK.activity=null;
+  LCK.onColor=null;
+  LCK.bindActions(async a=>{
+   if(a==='next'||a==='prev'){index=(index+(a==='next'?1:-1)+chars.length)%chars.length;LCK.state[kind+'Index']=index;LCK.persist(kind+'Index',index);render();}
+   if(['recognize','trace','independent','count'].includes(a)){mode=a;render();}
+   if(a==='speak')LCK.audio.speak(kind==='abc'?`Huruf ${char}. ${char} untuk ${word}.`:`Ayo hitung apelnya. ${Array.from({length:index},(_,i)=>LCK.numberWords[i+1]).join(', ')}. ${description}`);
+   if(a==='undo')paper?.undo();if(a==='redo')paper?.redoStroke();
+   if(a==='clear'&&await LCK.confirm('Coba dari awal?','Garis latihan ini akan dihapus.')){stopDemo();paper.clear();}
+   if(a==='check'){
+    stopDemo();paper.finish();paper.draw();const result=LCK.geometry.validate(paper.strokes.map(s=>s.p),ref);
+    if(result.ok){LCK.complete(kind+':'+char+':'+mode);LCK.notice('🌟 Hebat sekali! Garismu sudah mengikuti bentuknya.');LCK.$('paper').classList.add('celebrate');LCK.audio.reward();}
+    else LCK.notice(result.completed?'Bagus! Coba lagi bagian yang belum lengkap.':'Ayo ikuti garisnya! Mulai dari titik hijau dan lengkapi setiap garis.');
+   }
+   if(a==='demo'){
+    if(demonstrating)return;paper.finish();demonstrating=true;const refs=ref.map(s=>LCK.geometry.resample(s,70)),start=performance.now();
+    const animate=now=>{if(!paper.canvas.isConnected){stopDemo();return;}const amount=(now-start)/12,strokeIndex=Math.floor(amount/90),count=Math.min(70,Math.floor(amount%90));paper.draw();const ctx=paper.canvas.getContext('2d'),q=paper.square;ctx.save();ctx.translate(q.x,q.y);ctx.scale(q.s,q.s);ctx.strokeStyle='#d89337';ctx.lineWidth=.02;ctx.lineCap='round';refs.forEach((s,i)=>{const n=i<strokeIndex?s.length:i===strokeIndex?count:0;if(!n)return;ctx.beginPath();s.slice(0,n).forEach((p,j)=>j?ctx.lineTo(...p):ctx.moveTo(...p));ctx.stroke();});ctx.restore();if(strokeIndex<refs.length)demoFrame=requestAnimationFrame(animate);else{stopDemo();paper.request();}};demoFrame=requestAnimationFrame(animate);
+   }
+   if(a.startsWith('answer-')){if(Number(a.slice(7))===index){LCK.complete('count:'+char);LCK.notice('🌟 Betul! Hebat sekali!');LCK.audio.reward();}else{LCK.notice('Ayo hitung pelan-pelan. Coba sekali lagi!');}}
+  });
+ };render();
+};
+</script>
