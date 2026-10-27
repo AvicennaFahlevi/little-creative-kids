@@ -1,0 +1,70 @@
+<script>
+// Hand-authored centerline strokes in a 100 × 100 writing square.
+// Each array is one continuous stroke, in the demonstrated writing order.
+LCK.paths={
+ A:[[[20,80],[50,20],[80,80]],[[33,55],[67,55]]],
+ B:[[[25,20],[25,80]],[[25,20],[56,20],[72,28],[73,38],[62,49],[25,49]],[[25,49],[61,49],[76,59],[75,71],[60,80],[25,80]]],
+ C:[[[78,28],[66,20],[43,20],[26,33],[21,51],[27,70],[44,80],[64,80],[79,70]]],
+ D:[[[25,20],[25,80]],[[25,20],[51,20],[71,31],[79,50],[72,69],[52,80],[25,80]]],
+ E:[[[75,20],[25,20],[25,80],[75,80]],[[25,49],[65,49]]],
+ F:[[[75,20],[25,20],[25,80]],[[25,49],[66,49]]],
+ G:[[[77,29],[64,20],[43,20],[26,33],[21,51],[28,71],[44,80],[65,80],[78,67],[78,52],[54,52]]],
+ H:[[[25,20],[25,80]],[[75,20],[75,80]],[[25,50],[75,50]]],
+ I:[[[30,20],[70,20]],[[50,20],[50,80]],[[30,80],[70,80]]],
+ J:[[[35,20],[76,20]],[[65,20],[65,65],[60,76],[47,81],[33,77],[24,66]]],
+ K:[[[25,20],[25,80]],[[75,20],[25,52],[77,80]]],
+ L:[[[27,20],[27,80],[76,80]]],
+ M:[[[20,80],[20,20],[50,57],[80,20],[80,80]]],
+ N:[[[24,80],[24,20],[76,80],[76,20]]],
+ O:[[[50,20],[32,23],[22,38],[21,60],[32,77],[50,82],[68,77],[79,60],[78,38],[68,23],[50,20]]],
+ P:[[[25,80],[25,20],[57,20],[73,28],[76,40],[65,52],[25,52]]],
+ Q:[[[50,20],[32,23],[22,38],[21,60],[32,77],[50,82],[68,77],[79,60],[78,38],[68,23],[50,20]],[[57,62],[83,86]]],
+ R:[[[25,80],[25,20],[57,20],[73,28],[76,40],[65,52],[25,52]],[[51,52],[79,80]]],
+ S:[[[77,28],[64,20],[42,20],[27,29],[25,40],[37,49],[64,53],[77,63],[73,75],[58,81],[37,79],[24,71]]],
+ T:[[[20,20],[80,20]],[[50,20],[50,80]]],
+ U:[[[24,20],[24,62],[30,76],[49,82],[68,77],[77,63],[77,20]]],
+ V:[[[20,20],[50,80],[80,20]]],
+ W:[[[15,20],[30,80],[50,41],[70,80],[85,20]]],
+ X:[[[24,20],[76,80]],[[76,20],[24,80]]],
+ Y:[[[22,20],[50,50],[78,20]],[[50,50],[50,80]]],
+ Z:[[[23,20],[77,20],[23,80],[77,80]]],
+ '0':[[[50,20],[33,23],[25,39],[25,63],[34,78],[50,82],[66,78],[75,63],[75,39],[66,23],[50,20]]],
+ '1':[[[33,36],[50,20],[50,80]],[[30,80],[72,80]]],
+ '2':[[[25,33],[34,22],[50,19],[67,25],[74,38],[69,49],[26,80],[77,80]]],
+ '3':[[[26,26],[42,20],[62,22],[74,32],[72,43],[52,49],[70,54],[78,67],[68,78],[49,82],[29,76]]],
+ '4':[[[62,20],[23,61],[80,61]],[[64,20],[64,81]]],
+ '5':[[[75,20],[29,20],[27,48],[49,45],[68,50],[77,63],[70,77],[52,82],[32,78],[24,71]]],
+ '6':[[[72,23],[55,20],[39,29],[27,49],[25,66],[35,79],[54,82],[71,73],[76,60],[68,48],[51,44],[36,49],[25,61]]],
+ '7':[[[23,20],[79,20],[42,80]]],
+ '8':[[[50,49],[32,39],[29,29],[38,20],[56,19],[71,27],[70,39],[50,49],[29,59],[25,69],[35,79],[53,82],[71,76],[77,64],[68,54],[50,49]]],
+ '9':[[[74,41],[64,23],[46,19],[30,27],[25,40],[32,52],[47,57],[63,52],[74,41],[74,60],[65,76],[48,82],[31,78]]]
+};
+LCK.reference=ch=>LCK.paths[ch].map(s=>s.map(p=>[p[0]/100,p[1]/100]));
+LCK.geometry=(()=>{
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+ function resample(points,count=64){
+   if(!points.length)return [];
+   const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+distance(points[i-1],points[i]));
+   const total=lengths.at(-1);if(!total)return Array.from({length:count},()=>points[0].slice());
+   let j=1;return Array.from({length:count},(_,i)=>{const target=total*i/(count-1);while(j<points.length-1&&lengths[j]<target)j++;const span=lengths[j]-lengths[j-1],t=span?(target-lengths[j-1])/span:0;return [points[j-1][0]+t*(points[j][0]-points[j-1][0]),points[j-1][1]+t*(points[j][1]-points[j-1][1])];});
+ }
+ function stroke(attempt,ref){
+   if(attempt.length<3)return {ok:false,coverage:0,precision:0};
+   const a=resample(attempt),r=resample(ref);
+   const coverage=r.filter(p=>Math.min(...a.map(q=>distance(p,q)))<=.085).length/r.length;
+   const precision=a.filter(p=>Math.min(...r.map(q=>distance(p,q)))<=.095).length/a.length;
+   // Ordered samples reject reversed closed loops, backtracking, and scribbled coverage.
+   const ordered=a.reduce((sum,p,i)=>sum+distance(p,r[i]),0)/a.length;
+   const start=distance(a[0],r[0]),end=distance(a.at(-1),r.at(-1));
+   const len=p=>p.slice(1).reduce((sum,q,i)=>sum+distance(q,p[i]),0);
+   const ratio=len(a)/Math.max(.01,len(r));
+   return {ok:coverage>=.8&&precision>=.82&&start<=.14&&end<=.14&&ordered<=.105&&ratio>=.65&&ratio<=1.65,coverage,precision,ordered};
+ }
+ function validate(attempts,refs){
+   if(attempts.length!==refs.length)return {ok:false,coverage:0,completed:0,total:refs.length};
+   const checks=refs.map((r,i)=>stroke(attempts[i],r));
+   return {ok:checks.every(c=>c.ok),coverage:checks.reduce((s,c)=>s+c.coverage,0)/refs.length,completed:checks.filter(c=>c.ok).length,total:refs.length,checks};
+ }
+ return {distance,resample,stroke,validate};
+})();
+</script>

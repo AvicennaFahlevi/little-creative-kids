@@ -1,0 +1,44 @@
+<script>
+'use strict';
+window.LCK = {};
+LCK.$ = id => document.getElementById(id);
+LCK.button = (text, action, cls='') => `<button data-action="${action}" class="${cls}">${text}</button>`;
+LCK.notice = text => {const el=LCK.$('notice');el.textContent=text;el.classList.add('show');clearTimeout(LCK.notice.timer);LCK.notice.timer=setTimeout(()=>el.classList.remove('show'),3600);};
+LCK.confirm = (title,text,input=false) => new Promise(resolve=>{
+  const d=LCK.$('dialog');
+  LCK.$('dialog-content').innerHTML=`<h2></h2><p></p>${input?'<input id="gate-answer" type="number" inputmode="numeric" aria-label="Jawaban orang tua" required autocomplete="off">':''}`;
+  d.querySelector('h2').textContent=title;d.querySelector('p').textContent=text;
+  d.onclose=()=>resolve(d.returnValue==='ok'?(input?LCK.$('gate-answer').value:true):false);
+  d.returnValue='cancel';d.showModal();
+});
+LCK.clone = value => JSON.parse(JSON.stringify(value));
+LCK.store = (()=>{
+  let db, failed=false;
+  const open=new Promise(resolve=>{
+    if(!window.indexedDB){failed=true;resolve(null);return;}
+    const req=indexedDB.open('little-creative-kids',1);
+    req.onupgradeneeded=()=>req.result.createObjectStore('data');
+    req.onsuccess=()=>{db=req.result;db.onversionchange=()=>db.close();resolve(db);};
+    req.onerror=req.onblocked=()=>{failed=true;resolve(null);};
+  });
+  async function run(mode,fn){await open;if(failed||!db)throw new Error('Penyimpanan lokal tidak tersedia');return new Promise((resolve,reject)=>{const tx=db.transaction('data',mode);let result;const req=fn(tx.objectStore('data'));req.onsuccess=()=>{result=req.result;};tx.oncomplete=()=>resolve(result);tx.onerror=tx.onabort=()=>reject(tx.error||new Error('Penyimpanan penuh'));});}
+  return {get:key=>run('readonly',s=>s.get(key)),put:(key,value)=>run('readwrite',s=>s.put(value,key)),clear:()=>run('readwrite',s=>s.clear())};
+})();
+LCK.persist = async (key,value) => {try{await LCK.store.put(key,value);return true;}catch(e){LCK.notice('Penyimpanan tidak tersedia atau penuh. Unduh karya agar tetap aman.');return false;}};
+LCK.paletteColors=['#ed6f83','#f3a24e','#f6cf53','#a8cc69','#4a9b73','#62c4c0','#71a9e2','#8c7bc3','#db8db8','#a67454','#353e49','#ffffff'];
+LCK.paletteNames=['Merah muda','Jingga','Kuning','Hijau muda','Hijau','Toska','Biru','Ungu','Merah jambu','Cokelat','Hitam','Putih'];
+LCK.color=LCK.paletteColors[0];
+LCK.palette=()=>`<div class="palette" aria-label="Palet warna">${LCK.paletteColors.map((c,i)=>`<button aria-label="${LCK.paletteNames[i]}" aria-pressed="${c===LCK.color}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>`;
+LCK.bindPalette=()=>document.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{LCK.color=b.dataset.color;document.querySelectorAll('[data-color]').forEach(x=>x.setAttribute('aria-pressed',x===b));LCK.onColor?.();});
+LCK.png = canvas => new Promise((resolve,reject)=>{try{canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('PNG gagal dibuat')),'image/png');}catch(e){reject(e);}});
+LCK.download = (blob,name) => {const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name+'.png';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);};
+LCK.saveArtwork=async(canvas,name)=>{
+  if(LCK.saving)return;LCK.saving=true;
+  try{const blob=await LCK.png(canvas);const id=Date.now()+'-'+Math.random().toString(36).slice(2,8);const artwork={id,name,date:new Date().toISOString(),blob};
+    const saved=await LCK.persist('artwork:'+id,artwork);
+    if(saved){LCK.state.gallery.push({id,name,date:artwork.date});await LCK.persist('gallery',LCK.state.gallery);}
+    LCK.download(blob,name+'-'+id);LCK.notice(saved?'Karya tersimpan di galeri. PNG siap diunduh!':'PNG siap diunduh. Simpan berkas di perangkat.');LCK.audio.reward();
+    if(LCK.state.cloud&&window.google?.script?.run){const reader=new FileReader();reader.onload=()=>google.script.run.withSuccessHandler(()=>LCK.notice('Salinan karya tersimpan di Drive.')).withFailureHandler(()=>LCK.notice('Drive belum tersimpan. Karya lokal tetap tersedia.')).saveArtworkToDrive(reader.result);reader.readAsDataURL(blob);}
+  }catch(e){LCK.notice('Karya belum dapat disimpan. Coba lagi.');}finally{LCK.saving=false;}
+};
+</script>

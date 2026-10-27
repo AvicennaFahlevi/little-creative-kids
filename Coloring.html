@@ -1,0 +1,41 @@
+<script>
+LCK.scenes=(()=>{
+ const path=d=>`<path d="${d}"/>`,ellipse=(x,y,rx,ry)=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"/>`,circle=(x,y,r)=>`<circle cx="${x}" cy="${y}" r="${r}"/>`,rect=(x,y,w,h,rx=8)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+ const face=(x,y)=>`<g class="region-guide" fill="#303e3b" stroke="#303e3b" stroke-width="3">${circle(x-16,y,3)}${circle(x+16,y,3)}<path d="M${x-12} ${y+16}q12 13 24 0" fill="none"/></g>`;
+ const make=(name,category,regions,detail='')=>({name,category,regions,detail});
+ return [
+  make('Kucing','Hewan',[path('M180 160L168 66L247 120Q300 95 353 120L432 66L420 160Q455 215 421 262Q300 335 179 262Q145 215 180 160Z'),ellipse(300,328,107,53),path('M401 328Q505 330 469 262Q448 238 431 257Q477 303 401 303Z')],face(300,207)+'<g stroke="#303e3b" stroke-width="4"><path d="M220 222l-67-10m65 26l-62 12m224-28l67-10m-65 26l62 12"/></g>'),
+  make('Anjing','Hewan',[ellipse(300,220,120,115),path('M198 132Q95 93 131 273Q164 305 211 205Z'),path('M402 132Q505 93 469 273Q436 305 389 205Z'),ellipse(300,270,68,48)],face(300,215)),
+  make('Ikan','Hewan',[path('M169 209Q285 70 416 209Q285 347 169 209Z'),path('M409 209L509 120L509 298Z'),path('M253 132Q276 50 346 127Z'),path('M255 285Q280 354 345 290Z')],'<g class="region-guide">'+circle(229,190,8)+'<path d="M260 160q38 50 0 98" fill="none" stroke="#303e3b" stroke-width="5"/></g>'),
+  make('Kupu-kupu','Hewan',[path('M287 204Q131 25 135 156Q118 250 285 230Z'),path('M313 204Q469 25 465 156Q482 250 315 230Z'),path('M282 221Q118 213 164 333Q234 378 289 249Z'),path('M318 221Q482 213 436 333Q366 378 311 249Z'),ellipse(300,227,20,98)],'<path class="region-guide" d="M292 135q-32-64-50-25m66 25q32-64 50-25" fill="none" stroke="#303e3b" stroke-width="5"/>'),
+  make('Gajah','Hewan',[ellipse(300,230,138,102),ellipse(192,208,71,90),ellipse(379,200,67,84),path('M365 220L423 215L433 321Q430 377 366 356L359 323Q402 342 392 300Z'),rect(220,290,52,80),rect(313,290,52,80)],'<g class="region-guide">'+circle(353,198,7)+'</g>'),
+  make('Bunga','Alam',[path('M300 224L311 224L311 373L300 373Z'),ellipse(251,303,56,25),ellipse(355,324,56,25),ellipse(300,115,39,68),ellipse(226,187,68,39),ellipse(374,187,68,39),ellipse(300,258,39,68),circle(300,187,54)],face(300,181)),
+  make('Pohon','Alam',[rect(274,229,52,143),circle(227,203,74),circle(373,203,74),circle(300,129,94)],face(300,159)),
+  make('Matahari','Alam',Array.from({length:8},(_,i)=>{const a=i*Math.PI/4,x=300+Math.cos(a)*145,y=200+Math.sin(a)*145;return path(`M${x} ${y}l${Math.cos(a+2.4)*49} ${Math.sin(a+2.4)*49}l${Math.cos(a-2.4)*49-Math.cos(a+2.4)*49} ${Math.sin(a-2.4)*49-Math.sin(a+2.4)*49}Z`);}).concat(circle(300,200,95)),face(300,192)),
+  make('Pelangi','Alam',Array.from({length:5},(_,i)=>{const r=163-i*25,inner=r-25;return path(`M${300-r} 300a${r} ${r} 0 0 1 ${2*r} 0h-25a${inner} ${inner} 0 0 0 ${-2*inner} 0Z`);})),
+  make('Rumah','Benda',[rect(175,182,250,178),path('M138 188L300 63L462 188Z'),rect(273,266,58,94),rect(204,221,49,50),rect(350,221,49,50),circle(477,84,35)]),
+  make('Mobil','Benda',[path('M124 238L181 221L226 140L363 140L424 217L477 239L477 309L123 309Z'),path('M206 217L240 161L286 161L286 217Z'),path('M310 161L351 161L395 217L310 217Z'),circle(203,305,42),circle(405,305,42)],'<g class="region-guide" fill="#303e3b">'+circle(203,305,15)+circle(405,305,15)+'</g>'),
+  make('Balon','Benda',[ellipse(211,155,65,85),ellipse(389,155,65,85),ellipse(300,226,65,85)],'<path class="region-guide" d="M211 240q-30 80 89 142m89-142q30 80-89 142m0-71v71" fill="none" stroke="#303e3b" stroke-width="4"/>'),
+  make('Es krim','Benda',[path('M217 226L384 226L300 379Z'),circle(246,190,54),circle(354,190,54),circle(300,123,57)],'<g class="region-guide" fill="none" stroke="#303e3b" stroke-width="3"><path d="M246 250l79 78m-60-81l72 61m-65 19l80-80m-69 102l57-57"/></g>')
+ ];
+})();
+LCK.renderColoring=()=>{
+ let index=LCK.state.colorIndex||0;const histories={};const b=LCK.button;
+ const render=()=>{
+  const scene=LCK.scenes[index],key=String(index);const saved=LCK.state.coloring[key]||{};
+  LCK.$('main').innerHTML=LCK.heading('Mewarnai','Ketuk bagian gambar dan beri warna sesukamu.','🖍')+`<section class="workspace"><div class="stepper">${b('←','prev')}<strong>${scene.name} <small>· ${scene.category}</small></strong>${b('→','next')}</div><div class="toolbar">${b('↶ Urungkan','undo')}${b('↷ Ulangi','redo')}${b('↺ Mulai lagi','reset')}${b('↓ Simpan PNG','save','primary')}</div><div class="color-paper"><svg id="picture" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" aria-label="Gambar ${scene.name}" role="group"><rect width="600" height="400" fill="#f9fbf6"/><g fill="white" stroke="#303e3b" stroke-width="5" stroke-linejoin="round">${scene.regions.map((s,i)=>s.replace(/^<\w+/,m=>m+` id="scene-${index}-region-${i}" data-region="${i}" tabindex="0" role="button" aria-label="Warnai bagian ${i+1}"`)).join('')}</g>${scene.detail}</svg></div>${LCK.palette()}<p class="hint">${index+1} dari ${LCK.scenes.length} gambar · Pilih warna, lalu ketuk bagian gambar.</p></section>`;
+  const history=histories[key]||={undo:[],redo:[]};const picture=LCK.$('picture');
+  function apply(){picture.querySelectorAll('[data-region]').forEach(el=>el.setAttribute('fill',saved[el.dataset.region]||'#fff'));document.querySelector('[data-action="undo"]').disabled=!history.undo.length;document.querySelector('[data-action="redo"]').disabled=!history.redo.length;}
+  function persist(){LCK.state.coloring[key]=saved;LCK.persist('coloring',LCK.state.coloring);apply();}
+  const fill=el=>{const id=el.dataset.region,old=saved[id];if(old===LCK.color)return;history.undo.push({id,old,next:LCK.color});history.redo=[];saved[id]=LCK.color;persist();if(scene.regions.every((_,i)=>saved[i])){LCK.notice('🌟 Indah sekali! Semua bagian sudah berwarna.');if(!LCK.state.completedColors.includes(index)){LCK.state.completedColors.push(index);LCK.persist('completedColors',LCK.state.completedColors);LCK.audio.reward();picture.classList.add('celebrate');}}};
+  picture.onclick=e=>{const el=e.target.closest('[data-region]');if(el)fill(el);};picture.onkeydown=e=>{const el=e.target.closest('[data-region]');if(el&&['Enter',' '].includes(e.key)){e.preventDefault();fill(el);}};
+  LCK.onColor=null;LCK.bindPalette();LCK.bindActions(async a=>{
+    if(a==='next'||a==='prev'){index=(index+(a==='next'?1:-1)+LCK.scenes.length)%LCK.scenes.length;LCK.state.colorIndex=index;LCK.persist('colorIndex',index);render();}
+    if(a==='undo'&&history.undo.length){const op=history.undo.pop();history.redo.push(op);if(op.old===undefined)delete saved[op.id];else saved[op.id]=op.old;persist();}
+    if(a==='redo'&&history.redo.length){const op=history.redo.pop();history.undo.push(op);saved[op.id]=op.next;persist();}
+    if(a==='reset'&&await LCK.confirm('Warnai dari awal?','Warna pada gambar ini akan dihapus.')){Object.keys(saved).forEach(k=>delete saved[k]);history.undo=[];history.redo=[];persist();}
+    if(a==='save'){if(LCK.saving)return;const svg=picture.cloneNode(true);svg.setAttribute('width','1200');svg.setAttribute('height','800');const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}));try{const img=new Image();img.src=url;await img.decode();const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=800;canvas.getContext('2d').drawImage(img,0,0,1200,800);await LCK.saveArtwork(canvas,'mewarnai-'+scene.name.toLowerCase());}catch(e){LCK.notice('Gambar belum dapat diunduh. Coba lagi.');}finally{URL.revokeObjectURL(url);}}
+  });apply();
+ };render();
+};
+</script>

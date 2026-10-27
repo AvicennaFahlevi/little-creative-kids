@@ -1,0 +1,41 @@
+<script>
+// A canvas owns its listeners and observer; destroy it before navigating.
+LCK.Paper=class {
+ constructor(canvas,options){
+  this.canvas=canvas;this.options=options;this.strokes=options.strokes||[];this.redo=[];this.current=null;this.pointer=null;this.frame=0;
+  this.layer=document.createElement('canvas');this.controller=new AbortController();const signal=this.controller.signal;
+  canvas.addEventListener('pointerdown',e=>this.down(e),{signal});canvas.addEventListener('pointermove',e=>this.move(e),{signal});
+  canvas.addEventListener('pointerup',e=>this.end(e),{signal});canvas.addEventListener('pointercancel',e=>this.end(e,true),{signal});canvas.addEventListener('lostpointercapture',e=>this.end(e,true),{signal});
+  this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(canvas);this.resize();
+ }
+ get rect(){return this.canvas.getBoundingClientRect();}
+ get square(){const r=this.rect,s=Math.min(r.width,r.height);return {s,x:(r.width-s)/2,y:(r.height-s)/2};}
+ point(e){const r=this.rect;const q=this.options.trace?this.square:{s:0,x:0,y:0};return this.options.trace?[(e.clientX-r.left-q.x)/q.s,(e.clientY-r.top-q.y)/q.s]:[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height];}
+ down(e){if(this.pointer!==null||!e.isPrimary||e.button!==0||this.options.locked?.())return;if(this.strokes.length>=200){LCK.notice('Simpan karyamu, lalu mulai gambar baru.');return;}e.preventDefault();this.options.interact?.();this.pointer=e.pointerId;this.canvas.setPointerCapture(e.pointerId);this.current={p:[this.point(e)],c:LCK.color,w:(this.options.size?.()||10)/Math.min(this.rect.width,this.rect.height),tool:this.options.tool?.()||'marker'};this.request();}
+ move(e){if(e.pointerId!==this.pointer||!this.current)return;e.preventDefault();const samples=e.getCoalescedEvents?.()||[e];for(const sample of samples){const p=this.point(sample);if(LCK.geometry.distance(p,this.current.p.at(-1))>.0015&&this.current.p.length<8000)this.current.p.push(p);}this.request();}
+ end(e,cancel=false){if(e.pointerId!==this.pointer||!this.current)return;const pointer=this.pointer;this.pointer=null;if(!cancel)this.current.p.push(this.point(e));const stroke=this.current;this.current=null;this.strokes.push(stroke);this.redo=[];if(this.canvas.hasPointerCapture(pointer))this.canvas.releasePointerCapture(pointer);this.rebuild();this.options.change?.(this.strokes,cancel);}
+ finish(){if(this.pointer!==null)this.end({pointerId:this.pointer},true);}
+ resize(){this.finish();const r=this.rect;if(!r.width||!r.height)return;const d=Math.min(window.devicePixelRatio||1,2);this.canvas.width=Math.round(r.width*d);this.canvas.height=Math.round(r.height*d);this.layer.width=this.canvas.width;this.layer.height=this.canvas.height;this.dpr=d;this.rebuild();}
+ drawStroke(ctx,s){const r=this.rect,q=this.options.trace?this.square:{s:0,x:0,y:0};const xy=p=>this.options.trace?[q.x+p[0]*q.s,q.y+p[1]*q.s]:[p[0]*r.width,p[1]*r.height];ctx.save();ctx.globalCompositeOperation=s.tool==='eraser'?'destination-out':'source-over';ctx.strokeStyle=s.c;ctx.fillStyle=s.c;ctx.lineWidth=s.w*Math.min(r.width,r.height)*(s.tool==='pencil'?.5:1);ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=s.tool==='crayon'?.5:1;
+  const points=s.p.map(xy);ctx.beginPath();ctx.moveTo(...points[0]);
+  if(points.length<3){points.slice(1).forEach(p=>ctx.lineTo(...p));ctx.lineTo(points[0][0]+.1,points[0][1]+.1);}else{for(let i=1;i<points.length-1;i++){const p=points[i],n=points[i+1];ctx.quadraticCurveTo(p[0],p[1],(p[0]+n[0])/2,(p[1]+n[1])/2);}ctx.lineTo(...points.at(-1));}ctx.stroke();ctx.restore();
+ }
+ rebuild(){if(!this.dpr)return;const ctx=this.layer.getContext('2d');ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,this.layer.width,this.layer.height);ctx.setTransform(this.dpr,0,0,this.dpr,0,0);this.strokes.forEach(s=>this.drawStroke(ctx,s));this.request();}
+ request(){if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=0;this.draw();});}
+ draw(){const ctx=this.canvas.getContext('2d'),r=this.rect;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,this.canvas.width,this.canvas.height);ctx.drawImage(this.layer,0,0);ctx.setTransform(this.dpr,0,0,this.dpr,0,0);if(this.current)this.drawStroke(ctx,this.current);ctx.globalCompositeOperation='destination-over';this.options.guide?.(ctx,this.square);ctx.fillStyle='#fff';ctx.fillRect(0,0,r.width,r.height);ctx.globalCompositeOperation='source-over';}
+ undo(){this.finish();if(this.strokes.length)this.redo.push(this.strokes.pop());this.rebuild();this.options.change?.(this.strokes);}
+ redoStroke(){this.finish();if(this.redo.length)this.strokes.push(this.redo.pop());this.rebuild();this.options.change?.(this.strokes);}
+ clear(){this.finish();this.strokes=[];this.redo=[];this.rebuild();this.options.change?.(this.strokes);}
+ destroy(){this.finish();this.controller.abort();this.resizeObserver.disconnect();cancelAnimationFrame(this.frame);}
+};
+LCK.renderDrawing=()=>{
+ const b=LCK.button;let tool='marker',size=11;
+ LCK.$('main').innerHTML=LCK.heading('Melukis','Sedikit warna, sejuta cerita. Ayo buat karyamu!','🎨')+`<section class="workspace"><div class="toolbar" id="brush-tools">${b('✏ Pensil','pencil')}${b('🖍 Krayon','crayon')}${b('▰ Spidol','marker','selected')}${b('◌ Penghapus','eraser')}<button id="size-button" aria-label="Ukuran kuas: sedang">● Sedang</button></div><div class="toolbar">${b('↶ Urungkan','undo')}${b('↷ Ulangi','redo')}${b('✧ Gambar baru','clear')}${b('↓ Simpan PNG','save','primary')}</div><div class="paper"><canvas id="paper" aria-label="Kertas melukis, gambar dengan jari"></canvas></div>${LCK.palette()}<p class="hint">Pilih warna, lalu geser jarimu. Karya yang belum selesai disimpan di perangkat ini.</p></section>`;
+ const paper=new LCK.Paper(LCK.$('paper'),{strokes:LCK.state.drawing,tool:()=>tool,size:()=>size,change:s=>{LCK.state.drawing=s;LCK.persist('drawing',s);update();}});LCK.activity=paper;
+ function update(){document.querySelector('[data-action="undo"]').disabled=!paper.strokes.length;document.querySelector('[data-action="redo"]').disabled=!paper.redo.length;}
+ const setTool=t=>{tool=t;document.querySelectorAll('#brush-tools [data-action]').forEach(x=>x.classList.toggle('selected',x.dataset.action===t));};
+ LCK.onColor=()=>{if(tool==='eraser')setTool('marker');};LCK.bindPalette();
+ LCK.$('size-button').onclick=()=>{size=size===11?22:size===22?5:11;LCK.$('size-button').textContent=size===11?'● Sedang':size===22?'⬤ Besar':'• Kecil';LCK.$('size-button').setAttribute('aria-label','Ukuran kuas: '+(size===11?'sedang':size===22?'besar':'kecil'));};
+ LCK.bindActions(async a=>{if(['pencil','crayon','marker','eraser'].includes(a))setTool(a);if(a==='undo')paper.undo();if(a==='redo')paper.redoStroke();if(a==='clear'&&await LCK.confirm('Kertas baru?','Gambar di kertas ini akan dihapus. Simpan dulu jika ingin menyimpannya.'))paper.clear();if(a==='save'){paper.finish();paper.draw();await LCK.saveArtwork(paper.canvas,'lukisan');}});update();
+};
+</script>

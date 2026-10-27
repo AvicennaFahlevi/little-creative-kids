@@ -1,0 +1,9 @@
+node_modules/
+.clasp.json
+.clasprc.json
+.env*
+test-results/
+playwright-report/
+*.log
+deployment.local.*
+.gas-bootstrap/

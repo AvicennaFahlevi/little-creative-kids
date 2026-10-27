@@ -1,0 +1,5 @@
+<script>
+LCK.numberWords=['Nol','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan'];
+LCK.countChoices=n=>[n,(n+1)%10,(n+4)%10].sort((a,b)=>((a*7+n*3)%11)-((b*7+n*3)%11));
+LCK.renderNumbers=()=>LCK.renderLearning('num');
+</script>

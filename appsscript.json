@@ -1,6 +1,8 @@
 {
   "timeZone": "Asia/Jakarta",
-  "dependencies": {},
+  "dependencies": {"enabledAdvancedServices":[{"userSymbol":"Drive","serviceId":"drive","version":"v3"}]},
   "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
+  "runtimeVersion": "V8",
+  "oauthScopes": ["https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/userinfo.email"],
+  "webapp": {"executeAs":"USER_ACCESSING", "access":"MYSELF"}
 }
